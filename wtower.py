@@ -23,7 +23,7 @@ GPIO_PUMPS['H2'] = 27
 
 def signal_handler(signum, frame):
     print 'Signal handler called with signal', signum , '. Cleaning up and exiting'
-    GPIO.cleanup(25)
+    gpio_cleanup()
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, signal_handler)
@@ -42,6 +42,15 @@ def gpio_setup():
         # Set up the GPIO channels
         print k, ': setting GPIO', v, 'as IN'
         GPIO.setup(v, GPIO.OUT)
+
+def gpio_cleanup():
+    for k, v in GPIO_SW_CNTL.iteritems():
+        print k, ': cleaning up GPIO', v
+        GPIO.cleanup(v)
+
+    for k, v in GPIO_PUMPS.iteritems():
+        print k, ': cleaning up GPIO', v
+        GPIO.cleanup(v)
 
 def read_from_pressure_sensor():
     #TODO implement reading pressure sensor via I2C bus 
