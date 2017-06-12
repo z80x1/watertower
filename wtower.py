@@ -6,7 +6,9 @@ import RPi.GPIO as GPIO
 import random
 import paho.mqtt.client as paho
 
-SERVER = "10.10.10.70"
+#BROKER_SERVER = "10.10.10.70"
+BROKER_SERVER = "10.10.10.64"
+BROKER_PORT = 1883
 OBJECT = "kns1"
 TOPIC_PRESSURE = OBJECT+"/pressure"
 TOPIC_PUMPS_STATUS = OBJECT+"/pumps"
@@ -42,6 +44,8 @@ def gpio_setup():
         GPIO.setup(v, GPIO.OUT)
 
 def read_from_pressure_sensor():
+    #TODO implement reading pressure sensor via I2C bus 
+    #see example http://www.raspberrypi-spy.co.uk/2015/04/bmp180-i2c-digital-barometric-pressure-sensor/
     return random.randint(10, 30)
 
 def read_pumps_status():
@@ -61,6 +65,8 @@ def on_subscribe(client, userdata, mid, granted_qos):
  
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
+    #TODO separate messages for different GPIO
+    #FIXME currently driving LED on GPIO25
     GPIO.output(25, GPIO.HIGH)
     sleep(2)
     GPIO.output(25, GPIO.LOW)
@@ -72,9 +78,13 @@ def mqtt_setup():
     client.on_subscribe = on_subscribe
     client.on_message = on_message
 
+    #TODO add authorization
     #client.username_pw_set("username", "password")
 
-    client.connect(SERVER, 1883)
+    #TODO add SSl support. See http://www.hivemq.com/blog/mqtt-client-library-paho-python and https://gist.github.com/sharonbn/4104301
+    #client.tls_set()
+
+    client.connect(BROKER_SERVER, BROKER_PORT)
 
     client.subscribe(TOPIC_RELAYS, qos=1)
  
