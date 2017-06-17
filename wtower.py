@@ -3,7 +3,7 @@
 import signal, os, sys
 from time import sleep
 import RPi.GPIO as GPIO
-import random
+import ads1115
 import paho.mqtt.client as paho
 import pdb
 
@@ -61,9 +61,9 @@ def gpio_cleanup():
         GPIO.cleanup(v)
 
 def read_from_pressure_sensor():
-    #TODO implement reading pressure sensor via I2C bus 
-    #see example http://www.raspberrypi-spy.co.uk/2015/04/bmp180-i2c-digital-barometric-pressure-sensor/
-    return random.randint(10, 30)
+    #TODO move to using https://github.com/adafruit/Adafruit_Python_ADS1x15
+    #TODO calibrate reading pressure sensor via I2C bus 
+    return str(4.096*ads1115.ads_read()/32768)+"V"
 
 def read_pumps_status():
     H1_status = GPIO.input(GPIO_PUMPS['H1'])
@@ -118,6 +118,7 @@ def mqtt_setup():
 def main():
 
     gpio_setup()
+    ads1115.ads_setup()
 
     client = mqtt_setup()
 
