@@ -15,8 +15,8 @@ TOPIC_PRESSURE = OBJECT+"/pressure"
 TOPIC_PUMPS_STATUS = OBJECT+"/pumps"
 TOPIC_RELAYS = OBJECT+"/relay"
 
-SW_CNTL_OFF = GPIO.HIGH
-SW_CNTL_ON = GPIO.LOW
+SW_STATES = {'on': GPIO.LOW}
+SW_STATES['off'] = GPIO.HIGH
 
 #output GPIOs for comtrolling relays module
 #ground - pin 20, +5V - pin 4
@@ -44,7 +44,7 @@ def gpio_setup():
         # Set up the GPIO channels
         print k, ': setting GPIO', v, 'as OUT'
         GPIO.setup(v, GPIO.OUT)
-        GPIO.output(v, SW_CNTL_OFF)
+        GPIO.output(v, SW_STATES['off'])
 
     for k, v in GPIO_PUMPS.iteritems():
         # Set up the GPIO channels
@@ -82,17 +82,22 @@ def on_subscribe(client, userdata, mid, granted_qos):
  
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
-#  pdb.set_trace()
     try:
-        gpio = GPIO_SW_CNTL[msg.payload]
+        (relay, action) = msg.payload.split(":")
+    except ValueError:
+        print("Incorrent message payload received. Ignoring")
+        return
 
-        GPIO.output(gpio, SW_CNTL_ON)
-        sleep(2)
-        GPIO.output(gpio, SW_CNTL_OFF)
+    try:
+        gpio = GPIO_SW_CNTL[relay]
     except KeyError:
-        pass
-    except Exception:
-        pass
+        print("Received message to unknown target '"+relay+"'. Ignoring")
+        return
+
+    state = SW_STATES.get(action, SW_STATES['off'])
+
+    print("Switching relay "+relay+"/GPIO"+str(gpio)+" action "+action+"("+str(state)+")")
+    GPIO.output(gpio, state)
 
 def mqtt_setup():
     client = paho.Client()
@@ -107,10 +112,18 @@ def mqtt_setup():
     #TODO add SSl support. See http://www.hivemq.com/blog/mqtt-client-library-paho-python and https://gist.github.com/sharonbn/4104301
     #client.tls_set()
 
-    client.connect(BROKER_SERVER, BROKER_PORT)
+#  pdb.set_trace()
+    while True:
+        try:
+            client.connect(BROKER_SERVER, BROKER_PORT)
+            break
+        except Exception as e:
+            print "Broker connnection error({0}): {1}".format(e.errno, e.strerror)
+            sleep(10)
+            continue
 
     client.subscribe(TOPIC_RELAYS, qos=1)
- 
+
     client.loop_start()
 
     return client
