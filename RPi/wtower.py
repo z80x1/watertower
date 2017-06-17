@@ -72,7 +72,10 @@ def read_pumps_status():
     return (H1_status, H2_status)
 
 def on_connect(client, userdata, flags, rc):
-    print("CONNACK received with code %d." % (rc))
+    print("CONNACK received with code %d. Adding subscriptions" % (rc))
+    client.subscribe(TOPIC_RELAYS, qos=1)
+#TODO next can be used to separate messages between differert callbacks
+#    message_callback_add(sub, callback)
 
 def on_publish(client, userdata, mid):
     print("mid: "+str(mid))
@@ -121,8 +124,6 @@ def mqtt_setup():
             print "Broker connnection error({0}): {1}".format(e.errno, e.strerror)
             sleep(10)
             continue
-
-    client.subscribe(TOPIC_RELAYS, qos=1)
 
     client.loop_start()
 
