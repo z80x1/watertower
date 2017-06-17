@@ -5,6 +5,7 @@ from time import sleep
 import RPi.GPIO as GPIO
 import random
 import paho.mqtt.client as paho
+import pdb
 
 #BROKER_SERVER = "10.10.10.70"
 BROKER_SERVER = "10.10.10.64"
@@ -14,12 +15,18 @@ TOPIC_PRESSURE = OBJECT+"/pressure"
 TOPIC_PUMPS_STATUS = OBJECT+"/pumps"
 TOPIC_RELAYS = OBJECT+"/relay"
 
-GPIO_SW_CNTL = {'RR1': 25}
-GPIO_SW_CNTL['RR3'] = 23
-GPIO_SW_CNTL['RR4'] = 24
+SW_CNTL_OFF = GPIO.HIGH
+SW_CNTL_ON = GPIO.LOW
 
-GPIO_PUMPS = {'H1': 17}
-GPIO_PUMPS['H2'] = 27
+#output GPIOs for comtrolling relays module
+#ground - pin 20, +5V - pin 4
+GPIO_SW_CNTL = {'RR1': 25} #pin 22
+GPIO_SW_CNTL['RR3'] = 23 #pin 16
+GPIO_SW_CNTL['RR4'] = 24 #pin 18
+
+#input GPIOs for reading status of H1, H2
+GPIO_PUMPS = {'H1': 17} #pin 11
+GPIO_PUMPS['H2'] = 27 #pin 13
 
 def signal_handler(signum, frame):
     print 'Signal handler called with signal', signum , '. Cleaning up and exiting'
@@ -37,11 +44,12 @@ def gpio_setup():
         # Set up the GPIO channels
         print k, ': setting GPIO', v, 'as OUT'
         GPIO.setup(v, GPIO.OUT)
+        GPIO.output(v, SW_CNTL_OFF)
 
     for k, v in GPIO_PUMPS.iteritems():
         # Set up the GPIO channels
         print k, ': setting GPIO', v, 'as IN'
-        GPIO.setup(v, GPIO.OUT)
+        GPIO.setup(v, GPIO.IN)
 
 def gpio_cleanup():
     for k, v in GPIO_SW_CNTL.iteritems():
@@ -74,11 +82,17 @@ def on_subscribe(client, userdata, mid, granted_qos):
  
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
-    #TODO separate messages for different GPIO
-    #FIXME currently driving LED on GPIO25
-    GPIO.output(25, GPIO.HIGH)
-    sleep(2)
-    GPIO.output(25, GPIO.LOW)
+#  pdb.set_trace()
+    try:
+        gpio = GPIO_SW_CNTL[msg.payload]
+
+        GPIO.output(gpio, SW_CNTL_ON)
+        sleep(2)
+        GPIO.output(gpio, SW_CNTL_OFF)
+    except KeyError:
+        pass
+    except Exception:
+        pass
 
 def mqtt_setup():
     client = paho.Client()
