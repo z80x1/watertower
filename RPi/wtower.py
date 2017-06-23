@@ -24,9 +24,9 @@ GPIO_SW_CNTL = {'RR1': 25} #pin 22
 GPIO_SW_CNTL['RR3'] = 23 #pin 16
 GPIO_SW_CNTL['RR4'] = 24 #pin 18
 
-#input GPIOs for reading status of H1, H2
-GPIO_PUMPS = {'H1': 17} #pin 11
-GPIO_PUMPS['H2'] = 27 #pin 13
+#input GPIOs for reading status of pumps N1, N2
+GPIO_PUMPS = {'N1': 17} #pin 11
+GPIO_PUMPS['N2'] = 27 #pin 13
 
 def signal_handler(signum, frame):
     print 'Signal handler called with signal', signum , '. Cleaning up and exiting'
@@ -73,10 +73,10 @@ def read_from_pressure_sensor():
     return "{:.2f}".format(pressure)+" Atm"
 
 def read_pumps_status():
-    H1_status = GPIO.input(GPIO_PUMPS['H1'])
-    H2_status = GPIO.input(GPIO_PUMPS['H2'])
+    N1_status = GPIO.input(GPIO_PUMPS['N1'])
+    N2_status = GPIO.input(GPIO_PUMPS['N2'])
 
-    return (H1_status, H2_status)
+    return (N1_status, N2_status)
 
 def on_connect(client, userdata, flags, rc):
     print("CONNACK received with code %d. Adding subscriptions" % (rc))
@@ -139,6 +139,7 @@ def mqtt_setup():
 def main():
 
     gpio_setup()
+    #FIXME crash if no ADS on I2C is detected
     ads1115.ads_setup()
 
     client = mqtt_setup()
