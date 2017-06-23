@@ -66,8 +66,24 @@ def ads_setup():
     #   0x8483   AINP = AIN0 and AINN = AIN1, +/- 2.048V
     #   Continuous conversion mode, 128SPS
     # b15=1     OS       1 : Start a single conversion (when in power-down state)
-    # b14:12=000 MUX[2:0] AINP = AIN0 and AINN = AIN1
-    # b11:9=010 PGA[2:0] FSR = +/- 2.048V (gain=2)
+    # b14:12 MUX[2:0]
+    #  000 :AIN P = AIN0 and AIN N = AIN1 (default)
+    #  001 :AIN P = AIN0 and AIN N = AIN3
+    #  010 :AIN P = AIN1 and AIN N = AIN3
+    #  011 :AIN P = AIN2 and AIN N = AIN3
+    #*  100 :AIN P = AIN0 and AIN N = GND
+    #  101 :AIN P = AIN1 and AIN N = GND
+    #  110 :AIN P = AIN2 and AIN N = GND
+    #  111 :AIN P = AIN3 and AIN N = GND
+    # b11:9 PGA[2:0]
+    #  000 :FSR = +-6.144V
+    #  001 :FSR = +-4.096V
+    #  010 :FSR = +-2.048V (default)
+    #*  011 :FSR = +-1.024V
+    #  100 :FSR = +-0.512V
+    #  101 :FSR = +-0.256V
+    #  110 :FSR = +-0.256V
+    #  111 :FSR = +-0.256V
     # b8=0      MODE     0 : Continuous-conversion mode
     # b7:5=100  DR[2:0]  128 SPS
     # b4=0      COMP_MODE 0 : Traditional comparator (default)
@@ -75,7 +91,7 @@ def ads_setup():
     # b2=0      COMP_LAT  0 : Nonlatching comparator
     # b1:0=11   COMP_QUE  Disable comparator and set ALERT/RDY pin to high-impedance (default)
 #    data = [0x84,0x83]
-    data = [0xc2,0x83] #AINP = AIN0 and AIN N = GND; +/-4.096V
+    data = [0xc6,0x83] #AINP = AIN0 and AIN N = GND; +/-1.024V
     bus.write_i2c_block_data(ADDR, ADS1x15_POINTER_CONFIG, data)
 
     time.sleep(0.5)
