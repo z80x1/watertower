@@ -29,7 +29,7 @@ GPIO_PUMPS = {'N1': 17} #pin 11
 GPIO_PUMPS['N2'] = 27 #pin 13
 
 def signal_handler(signum, frame):
-    print 'Signal handler called with signal', signum , '. Cleaning up and exiting'
+    print("Signal handler called with signal %d. Cleaning up and exiting" % signum)
     gpio_cleanup()
     sys.exit(0)
 
@@ -40,24 +40,24 @@ def gpio_setup():
     # use P1 header pin numbering convention
     GPIO.setmode(GPIO.BCM)
 
-    for k, v in GPIO_SW_CNTL.iteritems():
+    for k, v in GPIO_SW_CNTL.items():
         # Set up the GPIO channels
-        print k, ': setting GPIO', v, 'as OUT'
+        print("%s: setting GPIO %d as OUT" % (k, v))
         GPIO.setup(v, GPIO.OUT)
         GPIO.output(v, SW_STATES['off'])
 
-    for k, v in GPIO_PUMPS.iteritems():
+    for k, v in GPIO_PUMPS.items():
         # Set up the GPIO channels
-        print k, ': setting GPIO', v, 'as IN'
+        print("%s: setting GPIO %d as IN" % (k, v))
         GPIO.setup(v, GPIO.IN)
 
 def gpio_cleanup():
-    for k, v in GPIO_SW_CNTL.iteritems():
-        print k, ': cleaning up GPIO', v
+    for k, v in GPIO_SW_CNTL.items():
+        print("%s: cleaning up GPIO%d" % (k, v))
         GPIO.cleanup(v)
 
-    for k, v in GPIO_PUMPS.iteritems():
-        print k, ': cleaning up GPIO', v
+    for k, v in GPIO_PUMPS.items():
+        print("%s: cleaning up GPIO%d" % (k, v))
         GPIO.cleanup(v)
 
 def read_from_pressure_sensor():
@@ -128,7 +128,7 @@ def mqtt_setup():
             client.connect(BROKER_SERVER, BROKER_PORT)
             break
         except Exception as e:
-            print "Broker connnection error({0}): {1}".format(e.errno, e.strerror)
+            print("Broker connnection error(%s): %s" % (e.errno, e.strerror))
             sleep(10)
             continue
 
@@ -146,11 +146,11 @@ def main():
 
     while True:
         pressure = read_from_pressure_sensor()
-        print 'pressure:', pressure
+        print("pressure:%f" % pressure)
         (rc, mid) = client.publish(TOPIC_PRESSURE, str(pressure), qos=1)
 
         pumps = read_pumps_status()
-        print 'pumps status:', pumps
+        print("pumps status:%f" % pumps)
         (rc, mid) = client.publish(TOPIC_PUMPS_STATUS, str(pumps), qos=1)
 
         sleep(10)
