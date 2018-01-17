@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python3
 
 import signal, os, sys
 from time import sleep
@@ -146,11 +146,11 @@ def main():
 
     while True:
         pressure = read_from_pressure_sensor()
-        print("pressure:%f" % pressure)
+        print("pressure:%s" % pressure)
         (rc, mid) = client.publish(TOPIC_PRESSURE, str(pressure), qos=1)
 
         pumps = read_pumps_status()
-        print("pumps status:%f" % pumps)
+        print("pumps status:%s" % str(pumps))
         (rc, mid) = client.publish(TOPIC_PUMPS_STATUS, str(pumps), qos=1)
 
         sleep(10)
