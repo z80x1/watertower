@@ -8,7 +8,7 @@ import paho.mqtt.client as paho
 import pdb
 
 #BROKER_SERVER = "10.10.10.70"
-BROKER_SERVER = "10.10.10.64"
+BROKER_SERVER = "54.93.165.93"
 BROKER_PORT = 1883
 OBJECT = "kns1"
 TOPIC_PRESSURE = OBJECT+"/pressure"
