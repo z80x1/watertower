@@ -26,7 +26,17 @@ GPIO_SW_CNTL['RR4'] = 24 #pin 18
 
 #input GPIOs for reading status of pumps N1, N2
 GPIO_PUMPS = {'N1': 17} #pin 11
-GPIO_PUMPS['N2'] = 27 #pin 13
+GPIO_PUMPS['N2'] = 27   #pin 13
+GPIO_PUMPS['N3'] = 22   #pin 15
+GPIO_PUMPS['N4'] = 5    #pin 29
+GPIO_PUMPS['N5'] = 6    #pin 31
+GPIO_PUMPS['N6'] = 13   #pin 33
+GPIO_PUMPS['N7'] = 19   #pin 35
+GPIO_PUMPS['N8'] = 26   #pin 37
+GPIO_PUMPS['N9'] = 16   #pin 36
+GPIO_PUMPS['N10'] = 20  #pin 38
+GPIO_PUMPS['N11'] = 21  #pin 40
+
 
 def signal_handler(signum, frame):
     print("Signal handler called with signal %d. Cleaning up and exiting" % signum)
@@ -75,8 +85,9 @@ def read_from_pressure_sensor():
 def read_pumps_status():
     N1_status = GPIO.input(GPIO_PUMPS['N1'])
     N2_status = GPIO.input(GPIO_PUMPS['N2'])
+    N3_status = GPIO.input(GPIO_PUMPS['N3'])
 
-    return (N1_status, N2_status)
+    return (N1_status, N2_status, N3_status)
 
 def on_connect(client, userdata, flags, rc):
     print("CONNACK received with code %d. Adding subscriptions" % (rc))
