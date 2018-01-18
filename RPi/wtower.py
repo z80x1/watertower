@@ -10,9 +10,9 @@ import pdb
 #BROKER_SERVER = "10.10.10.70"
 BROKER_SERVER = "54.93.165.93"
 BROKER_PORT = 1883
-OBJECT = "kns1"
+OBJECT = "wt1"
 TOPIC_PRESSURE = OBJECT+"/pressure"
-TOPIC_PUMPS_STATUS = OBJECT+"/pumps"
+TOPIC_STATUS = OBJECT+"/status"
 TOPIC_RELAYS = OBJECT+"/relay"
 
 SW_STATES = {'on': GPIO.LOW}
@@ -20,22 +20,26 @@ SW_STATES['off'] = GPIO.HIGH
 
 #output GPIOs for comtrolling relays module
 #ground - pin 20, +5V - pin 4
+#RR1 - remote control
+#RR3 - control Nasos1
+#RR4 - control Nasos2
 GPIO_SW_CNTL = {'RR1': 25} #pin 22
-GPIO_SW_CNTL['RR3'] = 23 #pin 16
-GPIO_SW_CNTL['RR4'] = 24 #pin 18
+GPIO_SW_CNTL['RR2'] = 12   #pin 32
+GPIO_SW_CNTL['RR3'] = 23   #pin 16
+GPIO_SW_CNTL['RR4'] = 24   #pin 18
 
-#input GPIOs for reading status of pumps N1, N2
-GPIO_PUMPS = {'N1': 17} #pin 11
-GPIO_PUMPS['N2'] = 27   #pin 13
-GPIO_PUMPS['N3'] = 22   #pin 15
-GPIO_PUMPS['N4'] = 5    #pin 29
-GPIO_PUMPS['N5'] = 6    #pin 31
-GPIO_PUMPS['N6'] = 13   #pin 33
-GPIO_PUMPS['N7'] = 19   #pin 35
-GPIO_PUMPS['N8'] = 26   #pin 37
-GPIO_PUMPS['N9'] = 16   #pin 36
-GPIO_PUMPS['N10'] = 20  #pin 38
-GPIO_PUMPS['N11'] = 21  #pin 40
+#input GPIOs for reading status of pumps and other sensors
+GPIO_IN = {'Nasos1': 17} #pin 11
+GPIO_IN['Nasos2'] = 27   #pin 13
+GPIO_IN['N3'] = 22   #pin 15
+GPIO_IN['N4'] = 5    #pin 29
+GPIO_IN['N5'] = 6    #pin 31
+GPIO_IN['N6'] = 13   #pin 33
+GPIO_IN['N7'] = 19   #pin 35
+GPIO_IN['N8'] = 26   #pin 37
+GPIO_IN['N9'] = 16   #pin 36
+GPIO_IN['N10'] = 20  #pin 38
+GPIO_IN['N11'] = 21  #pin 40
 
 
 def signal_handler(signum, frame):
@@ -56,7 +60,7 @@ def gpio_setup():
         GPIO.setup(v, GPIO.OUT)
         GPIO.output(v, SW_STATES['off'])
 
-    for k, v in GPIO_PUMPS.items():
+    for k, v in GPIO_IN.items():
         # Set up the GPIO channels
         print("%s: setting GPIO %d as IN" % (k, v))
         GPIO.setup(v, GPIO.IN)
@@ -66,7 +70,7 @@ def gpio_cleanup():
         print("%s: cleaning up GPIO%d" % (k, v))
         GPIO.cleanup(v)
 
-    for k, v in GPIO_PUMPS.items():
+    for k, v in GPIO_IN.items():
         print("%s: cleaning up GPIO%d" % (k, v))
         GPIO.cleanup(v)
 
@@ -82,10 +86,10 @@ def read_from_pressure_sensor():
     pressure = (U-b)/a
     return "{:.2f}".format(pressure)+" Atm"
 
-def read_pumps_status():
-    N1_status = GPIO.input(GPIO_PUMPS['N1'])
-    N2_status = GPIO.input(GPIO_PUMPS['N2'])
-    N3_status = GPIO.input(GPIO_PUMPS['N3'])
+def read_inputs_status():
+    N1_status = GPIO.input(GPIO_IN['Nasos1'])
+    N2_status = GPIO.input(GPIO_IN['Nasos2'])
+    N3_status = GPIO.input(GPIO_IN['N3'])
 
     return (N1_status, N2_status, N3_status)
 
@@ -160,9 +164,9 @@ def main():
         print("pressure:%s" % pressure)
         (rc, mid) = client.publish(TOPIC_PRESSURE, str(pressure), qos=1)
 
-        pumps = read_pumps_status()
-        print("pumps status:%s" % str(pumps))
-        (rc, mid) = client.publish(TOPIC_PUMPS_STATUS, str(pumps), qos=1)
+        status = read_inputs_status()
+        print("inputs status:%s" % str(status))
+        (rc, mid) = client.publish(TOPIC_STATUS, str(status), qos=1)
 
         sleep(10)
  
