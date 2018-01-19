@@ -14,6 +14,7 @@ OBJECT = "wt1"
 TOPIC_PRESSURE = OBJECT+"/pressure"
 TOPIC_STATUS = OBJECT+"/status"
 TOPIC_RELAYS = OBJECT+"/relay"
+TOPIC_SYSTEM = OBJECT+"/system"
 
 SW_STATES = {'on': GPIO.LOW}
 SW_STATES['off'] = GPIO.HIGH
@@ -95,7 +96,12 @@ def read_inputs_status():
 
 def on_connect(client, userdata, flags, rc):
     print("CONNACK received with code %d. Adding subscriptions" % (rc))
-    client.subscribe(TOPIC_RELAYS, qos=1)
+    (rc, mid) = client.subscribe(TOPIC_RELAYS, qos=1)
+    if rc == paho.MQTT_ERR_SUCCESS:
+        print("Send subscribe request, mid:%d" % (mid))
+    else:
+        print("Subscription error occured: %s, mid:%d" % (rc, mid))
+
 #TODO next can be used to separate messages between differert callbacks
 #    message_callback_add(sub, callback)
 
@@ -103,14 +109,14 @@ def on_publish(client, userdata, mid):
     print("mid: "+str(mid))
 
 def on_subscribe(client, userdata, mid, granted_qos):
-    print("Subscribed: "+str(mid)+" "+str(granted_qos))
+    print("Subscribed OK:  mid:"+str(mid)+", qos:"+str(granted_qos))
  
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
+    print("Got:"+msg.topic+" qos:"+str(msg.qos)+" "+str(msg.payload))
     try:
-        (relay, action) = msg.payload.split(":")
-    except ValueError:
-        print("Incorrent message payload received. Ignoring")
+        (relay, action) = msg.payload.decode().split(":")
+    except ValueError as e:
+        print("Ignoring incorrect message: %s" % (e))
         return
 
     try:
@@ -147,6 +153,10 @@ def mqtt_setup():
             sleep(10)
             continue
 
+    #Will seems to be not working
+    lwm = "Unexpectedly gone offline"
+    client.will_set(TOPIC_SYSTEM,lwm,qos=1,retain=False)
+
     client.loop_start()
 
     return client
@@ -158,12 +168,18 @@ def main():
     ads1115.ads_setup()
 
     client = mqtt_setup()
+    (rc, mid) = client.publish(TOPIC_SYSTEM, "Starting work", qos=1)
+
+    old_pressure = 0
 
     while True:
         pressure = read_from_pressure_sensor()
-        print("pressure:%s" % pressure)
-        (rc, mid) = client.publish(TOPIC_PRESSURE, str(pressure), qos=1)
+        if pressure != old_pressure:
+            print("pressure:%s" % pressure)
+            (rc, mid) = client.publish(TOPIC_PRESSURE, str(pressure), qos=0)
+            old_pressure = pressure
 
+        #add comparing current status with previous and send msg only if different
         status = read_inputs_status()
         print("inputs status:%s" % str(status))
         (rc, mid) = client.publish(TOPIC_STATUS, str(status), qos=1)
