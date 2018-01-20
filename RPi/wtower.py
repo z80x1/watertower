@@ -64,7 +64,7 @@ def gpio_setup():
     for k, v in GPIO_IN.items():
         # Set up the GPIO channels
         print("%s: setting GPIO %d as IN" % (k, v))
-        GPIO.setup(v, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(v, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def gpio_cleanup():
     for k, v in GPIO_SW_CNTL.items():
