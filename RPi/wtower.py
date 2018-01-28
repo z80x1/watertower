@@ -144,11 +144,11 @@ def read_inputs_status(input_list):
 
     return status
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(mqtt, userdata, flags, rc):
     print("CONNACK received with code %d" % (rc))
     sub_topic = gtopics['set']+'/#'
     print("Adding subscription to '%s'" % sub_topic)
-    (rc, mid) = client.subscribe(sub_topic, qos=1)
+    (rc, mid) = mqtt.subscribe(sub_topic, qos=1)
     if rc == paho.MQTT_ERR_SUCCESS:
         print("Sent subscribe request, mid:%d" % (mid))
     else:
@@ -157,14 +157,14 @@ def on_connect(client, userdata, flags, rc):
 #TODO next can be used to separate messages between differert callbacks
 #    message_callback_add(sub, callback)
 
-def on_publish(client, userdata, mid):
+def on_publish(mqtt, userdata, mid):
     #print("mid: "+str(mid))
     return
 
-def on_subscribe(client, userdata, mid, granted_qos):
+def on_subscribe(mqtt, userdata, mid, granted_qos):
     print("Subscribed OK:  mid:"+str(mid)+", qos:"+str(granted_qos))
  
-def on_message(client, userdata, msg):
+def on_message(mqtt, userdata, msg):
     print("Got:"+msg.topic+" qos:"+str(msg.qos)+" "+str(msg.payload))
     try:
         (o, s, relay) = msg.topic.split("/")
@@ -185,23 +185,23 @@ def on_message(client, userdata, msg):
     GPIO.output(gpio, state)
 
 def mqtt_setup():
-    client = paho.Client()
-    client.on_connect = on_connect
-    client.on_publish = on_publish
-    client.on_subscribe = on_subscribe
-    client.on_message = on_message
+    mqtt = paho.Client()
+    mqtt.on_connect = on_connect
+    mqtt.on_publish = on_publish
+    mqtt.on_subscribe = on_subscribe
+    mqtt.on_message = on_message
 
     #TODO add authorization
-    #client.username_pw_set("username", "password")
+    #mqtt.username_pw_set("username", "password")
 
-    #TODO add SSl support. See http://www.hivemq.com/blog/mqtt-client-library-paho-python and https://gist.github.com/sharonbn/4104301
-    #client.tls_set()
+    #TODO add SSl support. See http://www.hivemq.com/blog/mqtt-mqtt-library-paho-python and https://gist.github.com/sharonbn/4104301
+    #mqtt.tls_set()
 
 #  pdb.set_trace()
     print("Connecting to broker at address %s:%d" % (gconf['broker_ip'], gconf['broker_port']))
     while True:
         try:
-            client.connect(gconf['broker_ip'], gconf['broker_port'])
+            mqtt.connect(gconf['broker_ip'], gconf['broker_port'])
             break
         except Exception as e:
             print("Broker connnection error(%s): %s" % (e.errno, e.strerror))
@@ -210,11 +210,11 @@ def mqtt_setup():
 
     #MQTT will message seems to be not working
     lwm = "Unexpectedly gone offline"
-    client.will_set(gtopics['system'], lwm, qos=1, retain=False)
+    mqtt.will_set(gtopics['system'], lwm, qos=1, retain=False)
 
-    client.loop_start()
+    mqtt.loop_start()
 
-    return client
+    return mqtt
 
 def main():
 
@@ -227,8 +227,8 @@ def main():
     #FIXME crash if no ADS on I2C is detected
     ads1115.ads_setup()
 
-    client = mqtt_setup()
-    (rc, mid) = client.publish(gtopics['system'], "Starting work", qos=1)
+    mqtt = mqtt_setup()
+    (rc, mid) = mqtt.publish(gtopics['system'], "Starting work", qos=1)
 
     old_pressure = 0
     old_alarms = {}
@@ -238,7 +238,7 @@ def main():
         pressure = read_from_pressure_sensor()
         if pressure != old_pressure:
             print("pressure: %s" % pressure)
-            (rc, mid) = client.publish(gtopics['pressure'], str(pressure), qos=0)
+            (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0)
             old_pressure = pressure
 
         #add comparing current status with previous and send msg only if different
@@ -246,14 +246,14 @@ def main():
         for k, v in alarms.items():
             if k not in old_alarms.keys() or old_alarms[k] != v:
                 print("alarms status: %s %s" % (k, v))
-                (rc, mid) = client.publish(gtopics['alarm']+"/"+k, v, qos=1)
+                (rc, mid) = mqtt.publish(gtopics['alarm']+"/"+k, v, qos=1)
         old_alarms = alarms
 
         statuses = read_inputs_status(glist_statuses)
         for k, v in statuses.items():
             if k not in old_statuses.keys() or old_statuses[k] != v:
                 print("inputs status: %s %s" % (k, v))
-                (rc, mid) = client.publish(gtopics['status']+"/"+k, v, qos=1)
+                (rc, mid) = mqtt.publish(gtopics['status']+"/"+k, v, qos=1)
         old_statuses = statuses
 
         sleep(5)
