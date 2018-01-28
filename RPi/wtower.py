@@ -238,7 +238,7 @@ def main():
         pressure = read_from_pressure_sensor()
         if pressure != old_pressure:
             print("pressure: %s" % pressure)
-            (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0)
+            (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0, retain=True)
             old_pressure = pressure
 
         #add comparing current status with previous and send msg only if different
@@ -246,14 +246,14 @@ def main():
         for k, v in alarms.items():
             if k not in old_alarms.keys() or old_alarms[k] != v:
                 print("alarms status: %s %s" % (k, v))
-                (rc, mid) = mqtt.publish(gtopics['alarm']+"/"+k, v, qos=1)
+                (rc, mid) = mqtt.publish(gtopics['alarm']+"/"+k, v, qos=1, retain=True)
         old_alarms = alarms
 
         statuses = read_inputs_status(glist_statuses)
         for k, v in statuses.items():
             if k not in old_statuses.keys() or old_statuses[k] != v:
                 print("inputs status: %s %s" % (k, v))
-                (rc, mid) = mqtt.publish(gtopics['status']+"/"+k, v, qos=1)
+                (rc, mid) = mqtt.publish(gtopics['status']+"/"+k, v, qos=1, retain=True)
         old_statuses = statuses
 
         sleep(5)
