@@ -55,13 +55,13 @@ def load_config():
     section = parser['default']
     gconf['type'] = section.get('Nodetype', 'wtower')
     gconf['name'] = section.get('Nodename', 'xxx')
-    gconf['broker_ip'] = section.get('BrokerIp', '10.10.10.213')
+    gconf['broker_ip'] = section.get('BrokerIp', 'localhost')
     gconf['broker_port'] = section.getint('BrokerPort', 1883)
     print("Loaded config: %s" % str(gconf)) 
 
     gtopics['status'] = gconf['name']+"/status"
     gtopics['pressure'] = gconf['name']+"/pressure"
-    gtopics['relay'] = gconf['name']+"/relay"
+    gtopics['set'] = gconf['name']+"/set"
     gtopics['system'] = gconf['name']+"/system"
 
 def gpio_setup():
@@ -109,8 +109,9 @@ def read_inputs_status():
 
 def on_connect(client, userdata, flags, rc):
     print("CONNACK received with code %d" % (rc))
-    print("Adding subscriptions to '%s'" % gtopics['relay'])
-    (rc, mid) = client.subscribe(gtopics['relay'], qos=1)
+    sub_topic = gtopics['set']+'/#'
+    print("Adding subscription to '%s'" % sub_topic)
+    (rc, mid) = client.subscribe(sub_topic, qos=1)
     if rc == paho.MQTT_ERR_SUCCESS:
         print("Sent subscribe request, mid:%d" % (mid))
     else:
@@ -128,7 +129,8 @@ def on_subscribe(client, userdata, mid, granted_qos):
 def on_message(client, userdata, msg):
     print("Got:"+msg.topic+" qos:"+str(msg.qos)+" "+str(msg.payload))
     try:
-        (relay, action) = msg.payload.decode().split(":")
+        (o, s, relay) = msg.topic.split("/")
+        action = msg.payload.decode()
     except ValueError as e:
         print("Ignoring incorrect message: %s" % (e))
         return
