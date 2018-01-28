@@ -231,6 +231,8 @@ def main():
     (rc, mid) = client.publish(gtopics['system'], "Starting work", qos=1)
 
     old_pressure = 0
+    old_alarms = {}
+    old_statuses = {}
 
     while True:
         pressure = read_from_pressure_sensor()
@@ -240,17 +242,21 @@ def main():
             old_pressure = pressure
 
         #add comparing current status with previous and send msg only if different
-        status = read_inputs_status(glist_statuses)
-        for k, v in status.items():
-            print("inputs status: %s %s" % (k, v))
-            (rc, mid) = client.publish(gtopics['status']+"/"+k, v, qos=1)
+        alarms = read_inputs_status(glist_alarms)
+        for k, v in alarms.items():
+            if k not in old_alarms.keys() or old_alarms[k] != v:
+                print("alarms status: %s %s" % (k, v))
+                (rc, mid) = client.publish(gtopics['alarm']+"/"+k, v, qos=1)
+        old_alarms = alarms
 
-        status = read_inputs_status(glist_alarms)
-        for k, v in status.items():
-            print("alarms status: %s %s" % (k, v))
-            (rc, mid) = client.publish(gtopics['alarm']+"/"+k, v, qos=1)
+        statuses = read_inputs_status(glist_statuses)
+        for k, v in statuses.items():
+            if k not in old_statuses.keys() or old_statuses[k] != v:
+                print("inputs status: %s %s" % (k, v))
+                (rc, mid) = client.publish(gtopics['status']+"/"+k, v, qos=1)
+        old_statuses = statuses
 
-        sleep(10)
+        sleep(5)
  
 if __name__=="__main__":
    main()
