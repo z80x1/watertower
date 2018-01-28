@@ -6,11 +6,12 @@ import RPi.GPIO as GPIO
 import ads1115
 import paho.mqtt.client as paho
 import pdb
+import configparser
 
-#BROKER_SERVER = "10.10.10.70"
-BROKER_SERVER = "54.93.165.93"
-BROKER_PORT = 1883
-OBJECT = "wt1"
+CONF_FILE = "/etc/wtower.conf"
+gconf = {}
+
+OBJECT = "yyy"
 TOPIC_PRESSURE = OBJECT+"/pressure"
 TOPIC_STATUS = OBJECT+"/status"
 TOPIC_RELAYS = OBJECT+"/relay"
@@ -50,6 +51,21 @@ def signal_handler(signum, frame):
 
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
+
+def load_config():
+    parser = configparser.ConfigParser()
+    parser.read(CONF_FILE)
+    section = parser['default']
+    gconf['type'] = section.get('Nodetype', 'wtower')
+    gconf['name'] = section.get('Nodename', 'xxx')
+    gconf['broker_ip'] = section.get('BrokerIp', '10.10.10.213')
+    gconf['broker_port'] = section.getint('BrokerPort', 1883)
+    print("Loaded config: %s" % str(gconf)) 
+
+    TOPIC_PRESSURE = gconf['name']+"/pressure"
+    TOPIC_STATUS = gconf['name']+"/status"
+    TOPIC_RELAYS = gconf['name']+"/relay"
+    TOPIC_SYSTEM = gconf['name']+"/system"
 
 def gpio_setup():
     # use P1 header pin numbering convention
@@ -144,16 +160,17 @@ def mqtt_setup():
     #client.tls_set()
 
 #  pdb.set_trace()
+    print("Connecting to broker at address %s:%d" % (gconf['broker_ip'], gconf['broker_port']))
     while True:
         try:
-            client.connect(BROKER_SERVER, BROKER_PORT)
+            client.connect(gconf['broker_ip'], gconf['broker_port'])
             break
         except Exception as e:
             print("Broker connnection error(%s): %s" % (e.errno, e.strerror))
             sleep(10)
             continue
 
-    #Will seems to be not working
+    #MQTT will message seems to be not working
     lwm = "Unexpectedly gone offline"
     client.will_set(TOPIC_SYSTEM,lwm,qos=1,retain=False)
 
@@ -162,6 +179,8 @@ def mqtt_setup():
     return client
 
 def main():
+
+    load_config()
 
     gpio_setup()
     #FIXME crash if no ADS on I2C is detected
