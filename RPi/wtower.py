@@ -11,11 +11,7 @@ import configparser
 CONF_FILE = "/etc/wtower.conf"
 gconf = {}
 
-OBJECT = "yyy"
-TOPIC_PRESSURE = OBJECT+"/pressure"
-TOPIC_STATUS = OBJECT+"/status"
-TOPIC_RELAYS = OBJECT+"/relay"
-TOPIC_SYSTEM = OBJECT+"/system"
+gtopics = {}
 
 SW_STATES = {'on': GPIO.LOW}
 SW_STATES['off'] = GPIO.HIGH
@@ -31,6 +27,7 @@ GPIO_SW_CNTL['RR3'] = 23   #pin 16
 GPIO_SW_CNTL['RR4'] = 24   #pin 18
 
 #input GPIOs for reading status of pumps and other sensors
+# connect next PINs to GROUND pin #25 
 GPIO_IN = {'Nasos1': 17} #pin 11
 GPIO_IN['Nasos2'] = 27   #pin 13
 GPIO_IN['N3'] = 22   #pin 15
@@ -62,10 +59,10 @@ def load_config():
     gconf['broker_port'] = section.getint('BrokerPort', 1883)
     print("Loaded config: %s" % str(gconf)) 
 
-    TOPIC_PRESSURE = gconf['name']+"/pressure"
-    TOPIC_STATUS = gconf['name']+"/status"
-    TOPIC_RELAYS = gconf['name']+"/relay"
-    TOPIC_SYSTEM = gconf['name']+"/system"
+    gtopics['status'] = gconf['name']+"/status"
+    gtopics['pressure'] = gconf['name']+"/pressure"
+    gtopics['relay'] = gconf['name']+"/relay"
+    gtopics['system'] = gconf['name']+"/system"
 
 def gpio_setup():
     # use P1 header pin numbering convention
@@ -111,10 +108,11 @@ def read_inputs_status():
     return (N1_status, N2_status, N3_status)
 
 def on_connect(client, userdata, flags, rc):
-    print("CONNACK received with code %d. Adding subscriptions" % (rc))
-    (rc, mid) = client.subscribe(TOPIC_RELAYS, qos=1)
+    print("CONNACK received with code %d" % (rc))
+    print("Adding subscriptions to '%s'" % gtopics['relay'])
+    (rc, mid) = client.subscribe(gtopics['relay'], qos=1)
     if rc == paho.MQTT_ERR_SUCCESS:
-        print("Send subscribe request, mid:%d" % (mid))
+        print("Sent subscribe request, mid:%d" % (mid))
     else:
         print("Subscription error occured: %s, mid:%d" % (rc, mid))
 
@@ -172,7 +170,7 @@ def mqtt_setup():
 
     #MQTT will message seems to be not working
     lwm = "Unexpectedly gone offline"
-    client.will_set(TOPIC_SYSTEM,lwm,qos=1,retain=False)
+    client.will_set(gtopics['system'], lwm, qos=1, retain=False)
 
     client.loop_start()
 
@@ -187,7 +185,7 @@ def main():
     ads1115.ads_setup()
 
     client = mqtt_setup()
-    (rc, mid) = client.publish(TOPIC_SYSTEM, "Starting work", qos=1)
+    (rc, mid) = client.publish(gtopics['system'], "Starting work", qos=1)
 
     old_pressure = 0
 
@@ -195,13 +193,13 @@ def main():
         pressure = read_from_pressure_sensor()
         if pressure != old_pressure:
             print("pressure:%s" % pressure)
-            (rc, mid) = client.publish(TOPIC_PRESSURE, str(pressure), qos=0)
+            (rc, mid) = client.publish(gtopics['pressure'], str(pressure), qos=0)
             old_pressure = pressure
 
         #add comparing current status with previous and send msg only if different
         status = read_inputs_status()
         print("inputs status:%s" % str(status))
-        (rc, mid) = client.publish(TOPIC_STATUS, str(status), qos=1)
+        (rc, mid) = client.publish(gtopics['status'], str(status), qos=1)
 
         sleep(10)
  
