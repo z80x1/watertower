@@ -9,36 +9,38 @@ import pdb
 import configparser
 
 CONF_FILE = "/etc/wtower.conf"
+#global variables
 gconf = {}
-
 gtopics = {}
+glist_statuses = []
+glist_alarms = []
 
-SW_STATES = {'on': GPIO.LOW}
+SW_STATES = {}
+SW_STATES['on']  = GPIO.LOW
 SW_STATES['off'] = GPIO.HIGH
 
 #output GPIOs for comtrolling relays module
 #ground - pin 20, +5V - pin 4
-#RR1 - remote control
-#RR3 - control Nasos1
-#RR4 - control Nasos2
-GPIO_SW_CNTL = {'RR1': 25} #pin 22
-GPIO_SW_CNTL['RR2'] = 12   #pin 32
-GPIO_SW_CNTL['RR3'] = 23   #pin 16
-GPIO_SW_CNTL['RR4'] = 24   #pin 18
+GPIO_SW_CNTL = {}
+GPIO_SW_CNTL['RemCtrl'] = 25 #relays IN1 - pin 22
+GPIO_SW_CNTL['RR2'] = 12 #relays IN2 - pin 32
+GPIO_SW_CNTL['Pump1'] = 23 #relays IN3 - pin 16
+GPIO_SW_CNTL['Pump2'] = 24 #relays IN4 - pin 18
 
 #input GPIOs for reading status of pumps and other sensors
 # connect next PINs to GROUND pin #25 
-GPIO_IN = {'Nasos1': 17} #pin 11
-GPIO_IN['Nasos2'] = 27   #pin 13
-GPIO_IN['N3'] = 22   #pin 15
-GPIO_IN['N4'] = 5    #pin 29
-GPIO_IN['N5'] = 6    #pin 31
-GPIO_IN['N6'] = 13   #pin 33
-GPIO_IN['N7'] = 19   #pin 35
-GPIO_IN['N8'] = 26   #pin 37
-GPIO_IN['N9'] = 16   #pin 36
-GPIO_IN['N10'] = 20  #pin 38
-GPIO_IN['N11'] = 21  #pin 40
+GPIO_IN = {}
+GPIO_IN['Pump1'] = 17 #pin 11
+GPIO_IN['Pump2'] = 27   #pin 13
+GPIO_IN['ExtPwr'] = 22   #pin 15
+GPIO_IN['Pump3'] = 5    #pin 29
+GPIO_IN['DoorOpen'] = 6    #pin 31
+GPIO_IN['Rake'] = 13   #pin 33
+GPIO_IN['Level1'] = 19   #pin 35
+GPIO_IN['Level2'] = 26   #pin 37
+GPIO_IN['Level3'] = 16   #pin 36
+GPIO_IN['DrainOn'] = 20  #pin 38
+GPIO_IN['Flood'] = 21  #pin 40
 
 
 def signal_handler(signum, frame):
@@ -50,43 +52,78 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 def load_config():
+    global gconf
+    global gtopics
+
     parser = configparser.ConfigParser()
     parser.read(CONF_FILE)
     section = parser['default']
-    gconf['type'] = section.get('Nodetype', 'wtower')
+    gconf['type'] = section.get('Nodetype', 'tower')
     gconf['name'] = section.get('Nodename', 'xxx')
     gconf['broker_ip'] = section.get('BrokerIp', 'localhost')
     gconf['broker_port'] = section.getint('BrokerPort', 1883)
+    #TODO: verify loaded values
     print("Loaded config: %s" % str(gconf)) 
 
+    gtopics['system'] = gconf['name']+"/system"
+    gtopics['alarm'] = gconf['name']+"/alarm"
     gtopics['status'] = gconf['name']+"/status"
     gtopics['pressure'] = gconf['name']+"/pressure"
     gtopics['set'] = gconf['name']+"/set"
-    gtopics['system'] = gconf['name']+"/system"
+
+def classify_gpio():
+    global glist_statuses
+    global glist_alarms
+
+    if gconf['type'] == 'tower':
+        glist_statuses = ["Pump1", "Pump2"]
+        glist_alarms = ["ExtPwr"]
+
+    elif gconf['type'] == 'kns':
+        glist_statuses = ["Pump1", "Pump2", "Pump3", "Level1", "Level2", "Level3", "DoorOpen", "Rake"]
+        glist_alarms = ["ExtPwr", "DrainOn", "Flood"]
+
+    else:
+        print("Unsupported system type: %s" % gconf['type'])
+        return False
+        
+    return True
 
 def gpio_setup():
     # use P1 header pin numbering convention
     GPIO.setmode(GPIO.BCM)
 
+    print("Setting relay outputs:")
     for k, v in GPIO_SW_CNTL.items():
         # Set up the GPIO channels
-        print("%s: setting GPIO %d as OUT" % (k, v))
+        print(" %s: setting GPIO %d as OUT" % (k, v))
         GPIO.setup(v, GPIO.OUT)
         GPIO.output(v, SW_STATES['off'])
 
-    for k, v in GPIO_IN.items():
-        # Set up the GPIO channels
-        print("%s: setting GPIO %d as IN" % (k, v))
-        GPIO.setup(v, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    print("Setting status inputs:")
+    for n in glist_statuses:
+        v = GPIO_IN[n]
+        print(" %s: setting GPIO %d as IN" % (n, GPIO_IN[n]))
+        GPIO.setup(GPIO_IN[n], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+    print("Setting ALARM inputs:")
+    for n in glist_alarms:
+        v = GPIO_IN[n]
+        print(" %s: setting GPIO %d as IN" % (n, GPIO_IN[n]))
+        GPIO.setup(GPIO_IN[n], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def gpio_cleanup():
     for k, v in GPIO_SW_CNTL.items():
         print("%s: cleaning up GPIO%d" % (k, v))
         GPIO.cleanup(v)
 
-    for k, v in GPIO_IN.items():
-        print("%s: cleaning up GPIO%d" % (k, v))
-        GPIO.cleanup(v)
+    for n in glist_statuses:
+        print("%s: cleaning up GPIO%d" % (n, GPIO_IN[n]))
+        GPIO.cleanup(GPIO_IN[n])
+
+    for n in glist_alarms:
+        print("%s: cleaning up GPIO%d" % (n, GPIO_IN[n]))
+        GPIO.cleanup(GPIO_IN[n])
 
 def read_from_pressure_sensor():
     #TODO move to using https://github.com/adafruit/Adafruit_Python_ADS1x15
@@ -100,12 +137,12 @@ def read_from_pressure_sensor():
     pressure = (U-b)/a
     return "{:.2f}".format(pressure)+" Atm"
 
-def read_inputs_status():
-    N1_status = GPIO.input(GPIO_IN['Nasos1'])
-    N2_status = GPIO.input(GPIO_IN['Nasos2'])
-    N3_status = GPIO.input(GPIO_IN['N3'])
+def read_inputs_status(input_list):
+    status = {}
+    for n in input_list:
+      status[n] = 'on' if GPIO.input(GPIO_IN[n])==GPIO.LOW else 'off'
 
-    return (N1_status, N2_status, N3_status)
+    return status
 
 def on_connect(client, userdata, flags, rc):
     print("CONNACK received with code %d" % (rc))
@@ -121,7 +158,8 @@ def on_connect(client, userdata, flags, rc):
 #    message_callback_add(sub, callback)
 
 def on_publish(client, userdata, mid):
-    print("mid: "+str(mid))
+    #print("mid: "+str(mid))
+    return
 
 def on_subscribe(client, userdata, mid, granted_qos):
     print("Subscribed OK:  mid:"+str(mid)+", qos:"+str(granted_qos))
@@ -182,6 +220,9 @@ def main():
 
     load_config()
 
+    if not classify_gpio():
+        return False
+
     gpio_setup()
     #FIXME crash if no ADS on I2C is detected
     ads1115.ads_setup()
@@ -194,14 +235,20 @@ def main():
     while True:
         pressure = read_from_pressure_sensor()
         if pressure != old_pressure:
-            print("pressure:%s" % pressure)
+            print("pressure: %s" % pressure)
             (rc, mid) = client.publish(gtopics['pressure'], str(pressure), qos=0)
             old_pressure = pressure
 
         #add comparing current status with previous and send msg only if different
-        status = read_inputs_status()
-        print("inputs status:%s" % str(status))
-        (rc, mid) = client.publish(gtopics['status'], str(status), qos=1)
+        status = read_inputs_status(glist_statuses)
+        for k, v in status.items():
+            print("inputs status: %s %s" % (k, v))
+            (rc, mid) = client.publish(gtopics['status']+"/"+k, v, qos=1)
+
+        status = read_inputs_status(glist_alarms)
+        for k, v in status.items():
+            print("alarms status: %s %s" % (k, v))
+            (rc, mid) = client.publish(gtopics['alarm']+"/"+k, v, qos=1)
 
         sleep(10)
  
