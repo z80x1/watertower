@@ -190,7 +190,7 @@ def on_message(mqtt, userdata, msg):
     GPIO.output(gpio, state)
 
 def mqtt_setup():
-    mqtt = paho.Client()
+    mqtt = paho.Client(client_id=gconf['name'], clean_session=False, userdata=None, protocol=paho.MQTTv311)
     mqtt.on_connect = on_connect
     mqtt.on_disconnect = on_disconnect
     mqtt.on_publish = on_publish
