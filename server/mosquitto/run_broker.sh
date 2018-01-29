@@ -7,7 +7,7 @@ docker stop $NAME
 docker rm $NAME
 docker run -it --detach \
         --name $NAME \
-        -p 1883:1883 -p 9001:9001 \
+        -p 1883:1883 -p 9001:9001 -p 8883:8883  \
         -v $BASE/mosquitto.conf:/mosquitto/config/mosquitto.conf \
         -v $BASE/data:/mosquitto/data \
         -v $BASE/log:/mosquitto/log \
