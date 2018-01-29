@@ -9,7 +9,8 @@ import paho.mqtt.client as paho
 import pdb
 import configparser
 
-CONF_FILE = "/etc/wtower.conf"
+CONF_FILE = "/etc/wtower/wtower.conf"
+CERT_FILE = "/etc/wtower/ca.crt"
 #global variables
 gconf = {}
 gtopics = {}
@@ -201,7 +202,8 @@ def mqtt_setup():
     #mqtt.username_pw_set("username", "password")
 
     #TODO add SSl support. See http://www.hivemq.com/blog/mqtt-mqtt-library-paho-python and https://gist.github.com/sharonbn/4104301
-    #mqtt.tls_set()
+    mqtt.tls_set(CERT_FILE, tls_version=2)
+    mqtt.tls_insecure_set(True)
 
     #set will message to be displayed when connection interrupted
     lwm = "Unexpectedly gone offline"
@@ -214,7 +216,7 @@ def mqtt_setup():
             mqtt.connect(gconf['broker_ip'], gconf['broker_port'], keepalive=60)
             break
         except Exception as e:
-            print("Broker connnection error(%s): %s" % (e.errno, e.strerror))
+            print("Broker connnection error: %s" % e)
             sleep(10)
             continue
 
