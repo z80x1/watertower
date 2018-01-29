@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import signal, os, sys
-from time import sleep
+import time
 import RPi.GPIO as GPIO
 import ads1115
 import paho.mqtt.client as paho
@@ -228,7 +228,8 @@ def main():
     ads1115.ads_setup()
 
     mqtt = mqtt_setup()
-    (rc, mid) = mqtt.publish(gtopics['system'], "Starting work", qos=1)
+    msg = "Started at " + time.strftime("%Y-%m-%d %H:%M:%S")
+    (rc, mid) = mqtt.publish(gtopics['system'], msg, qos=1, retain=True)
 
     old_pressure = 0
     old_alarms = {}
