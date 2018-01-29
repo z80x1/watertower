@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import signal, os, sys
+from time import sleep
 import time
 import RPi.GPIO as GPIO
 import ads1115
@@ -145,7 +146,8 @@ def read_inputs_status(input_list):
     return status
 
 def on_connect(mqtt, userdata, flags, rc):
-    print("CONNACK received with code %d" % (rc))
+    print("CONNACK received with rc=%d" % (rc))
+
     sub_topic = gtopics['set']+'/#'
     print("Adding subscription to '%s'" % sub_topic)
     (rc, mid) = mqtt.subscribe(sub_topic, qos=1)
@@ -153,6 +155,9 @@ def on_connect(mqtt, userdata, flags, rc):
         print("Sent subscribe request, mid:%d" % (mid))
     else:
         print("Subscription error occured: %s, mid:%d" % (rc, mid))
+
+def on_disconnect(mqtt, userdata, rc=0):
+    print("DisConnected result code "+str(rc))
 
 #TODO next can be used to separate messages between differert callbacks
 #    message_callback_add(sub, callback)
@@ -187,6 +192,7 @@ def on_message(mqtt, userdata, msg):
 def mqtt_setup():
     mqtt = paho.Client()
     mqtt.on_connect = on_connect
+    mqtt.on_disconnect = on_disconnect
     mqtt.on_publish = on_publish
     mqtt.on_subscribe = on_subscribe
     mqtt.on_message = on_message
@@ -197,20 +203,20 @@ def mqtt_setup():
     #TODO add SSl support. See http://www.hivemq.com/blog/mqtt-mqtt-library-paho-python and https://gist.github.com/sharonbn/4104301
     #mqtt.tls_set()
 
+    #set will message to be displayed when connection interrupted
+    lwm = "Unexpectedly gone offline"
+    mqtt.will_set(gtopics['system'], lwm, qos=1, retain=True)
+
 #  pdb.set_trace()
     print("Connecting to broker at address %s:%d" % (gconf['broker_ip'], gconf['broker_port']))
     while True:
         try:
-            mqtt.connect(gconf['broker_ip'], gconf['broker_port'])
+            mqtt.connect(gconf['broker_ip'], gconf['broker_port'], keepalive=60)
             break
         except Exception as e:
             print("Broker connnection error(%s): %s" % (e.errno, e.strerror))
             sleep(10)
             continue
-
-    #MQTT will message seems to be not working
-    lwm = "Unexpectedly gone offline"
-    mqtt.will_set(gtopics['system'], lwm, qos=1, retain=False)
 
     mqtt.loop_start()
 
@@ -236,6 +242,8 @@ def main():
     old_statuses = {}
 
     while True:
+        #TODO check if connection to broker exists
+
         pressure = read_from_pressure_sensor()
         if pressure != old_pressure:
             print("pressure: %s" % pressure)
