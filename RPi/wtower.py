@@ -25,7 +25,7 @@ SW_STATES['off'] = GPIO.HIGH
 #ground - pin 20, +5V - pin 4
 GPIO_SW_CNTL = {}
 GPIO_SW_CNTL['RemCtrl'] = 25 #relays IN1 - pin 22
-GPIO_SW_CNTL['RR2'] = 12 #relays IN2 - pin 32
+GPIO_SW_CNTL['Pump3'] = 12 #relays IN2 - pin 32
 GPIO_SW_CNTL['Pump1'] = 23 #relays IN3 - pin 16
 GPIO_SW_CNTL['Pump2'] = 24 #relays IN4 - pin 18
 
@@ -60,10 +60,10 @@ def load_config():
     parser = configparser.ConfigParser()
     parser.read(CONF_FILE)
     section = parser['default']
-    gconf['type'] = section.get('Nodetype', 'tower')
-    gconf['name'] = section.get('Nodename', 'xxx')
+    gconf['type'] = section.get('Nodetype', 'tower') # tower/kns
+    gconf['name'] = section.get('Nodename', 'xxx') # wtXX/knsXX
     gconf['broker_ip'] = section.get('BrokerIp', 'localhost')
-    gconf['broker_port'] = section.getint('BrokerPort', 1883)
+    gconf['broker_port'] = section.getint('BrokerPort', 1883) # 8883 for TLS enabled
     #TODO: verify loaded values
     print("Loaded config: %s" % str(gconf)) 
 
@@ -232,8 +232,9 @@ def main():
         return False
 
     gpio_setup()
-    #FIXME crash if no ADS on I2C is detected
-    ads1115.ads_setup()
+    if gconf['type'] == 'tower':
+        #FIXME crash if no ADS on I2C is detected
+        ads1115.ads_setup()
 
     mqtt = mqtt_setup()
     msg = "Started at " + time.strftime("%Y-%m-%d %H:%M:%S")
@@ -246,11 +247,12 @@ def main():
     while True:
         #TODO check if connection to broker exists
 
-        pressure = read_from_pressure_sensor()
-        if pressure != old_pressure:
-            print("pressure: %s" % pressure)
-            (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0, retain=True)
-            old_pressure = pressure
+        if gconf['type'] == 'tower':
+            pressure = read_from_pressure_sensor()
+            if pressure != old_pressure:
+                print("pressure: %s" % pressure)
+                (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0, retain=True)
+                old_pressure = pressure
 
         #add comparing current status with previous and send msg only if different
         alarms = read_inputs_status(glist_alarms)
