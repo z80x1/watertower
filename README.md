@@ -172,7 +172,21 @@ Subscribing to all messages coming to broker
 mosquitto_sub -h localhost -t '#' -v | xargs -d$'\n' -L1 sh -c 'date "+%D %T.%3N $0"'
 ```
 
+Connecting to broker with TLS enabled
+```bash
+mosquitto_sub -h localhost -p 8883 --cafile /srv/mosquitto/data/tls/ca.crt --insecure -t '#' -v | xargs -d$'\n' -L1 sh -c 'date "+%D %T.%3N $0"'
+```
+
 ### Web
 
 [mqtt-panel](https://github.com/fabaff/mqtt-panel)
+
+Run HTTP server
+```bash
+cd web/mqtt-panel
+docker run -dit --name my-apache-app -p 8080:80 -v "$PWD":/usr/local/apache2/htdocs/ httpd:2.4
+```
+
+Point your browser to http://localhost:8080
+
 
