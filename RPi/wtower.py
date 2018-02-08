@@ -31,6 +31,7 @@ gconf = {}
 gtopics = {}
 glist_statuses = []
 glist_alarms = []
+mqtt = {}
 
 SW_STATES = {}
 SW_STATES['on']  = GPIO.LOW
@@ -62,6 +63,8 @@ GPIO_IN['Flood'] = 21  #pin 40
 
 def signal_handler(signum, frame):
     print("Signal handler called with signal %d. Cleaning up and exiting" % signum)
+    mqtt.publish(gtopics['online'], "false", qos=1, retain=True)
+    mqtt.disconnect()
     gpio_cleanup()
     sys.exit(0)
 
@@ -82,7 +85,7 @@ def load_config():
     #TODO: verify loaded values
     print("Loaded config: %s" % str(gconf)) 
 
-    gtopics['system'] = gconf['name']+"/system"
+    gtopics['online'] = gconf['name']+"/online"
     gtopics['alarm'] = gconf['name']+"/alarm"
     gtopics['status'] = gconf['name']+"/status"
     gtopics['pressure'] = gconf['name']+"/pressure"
@@ -206,6 +209,8 @@ def on_message(mqtt, userdata, msg):
     GPIO.output(gpio, state)
 
 def mqtt_setup():
+    global mqtt
+
     mqtt = paho.Client(client_id=gconf['name'], clean_session=False, userdata=None, protocol=paho.MQTTv311)
     mqtt.on_connect = on_connect
     mqtt.on_disconnect = on_disconnect
@@ -221,8 +226,7 @@ def mqtt_setup():
     mqtt.tls_insecure_set(True)
 
     #set will message to be displayed when connection interrupted
-    lwm = "Unexpectedly gone offline"
-    mqtt.will_set(gtopics['system'], lwm, qos=1, retain=True)
+    mqtt.will_set(gtopics['online'], "false", qos=1, retain=True)
 
 #  pdb.set_trace()
     print("Connecting to broker at address %s:%d" % (gconf['broker_ip'], gconf['broker_port']))
@@ -252,8 +256,7 @@ def main():
         ads1115.ads_setup()
 
     mqtt = mqtt_setup()
-    msg = "Started at " + time.strftime("%Y-%m-%d %H:%M:%S")
-    (rc, mid) = mqtt.publish(gtopics['system'], msg, qos=1, retain=True)
+    (rc, mid) = mqtt.publish(gtopics['online'], "true", qos=1, retain=True)
 
     old_pressure = 0
     old_alarms = {}
