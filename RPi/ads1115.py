@@ -58,6 +58,8 @@ ADS1x15_CONFIG_COMP_QUE_DISABLE = 0x0003
 # ADS1115 address, 0x48
 ADDR=ADS1x15_DEFAULT_ADDRESS
 
+ads_setup_required = False
+
 # Get I2C bus
 bus = smbus.SMBus(1)
 
@@ -97,9 +99,21 @@ def ads_setup():
     time.sleep(0.5)
 
 def ads_read():
+    global ads_setup_required
+
+    if ads_setup_required:
+        ads_setup()
+        ads_setup_required = False
+
     # Read data back from 0x00, 2 bytes
     # raw_adc MSB, raw_adc LSB
-    data = bus.read_i2c_block_data(ADDR, ADS1x15_POINTER_CONVERSION, 2)
+    try:
+        data = bus.read_i2c_block_data(ADDR, ADS1x15_POINTER_CONVERSION, 2)
+    except IOError:
+        print("ads: IO error catched, running i2cdetect")
+        subprocess.call(['i2cdetect', '-y', '1'])
+        ads_setup_required = True
+        return 0;
 
     # Convert the data
     raw_adc = data[0]*256 + data[1]
@@ -107,6 +121,7 @@ def ads_read():
     if raw_adc > 32767:
         raw_adc -= 65535
 
+    print("ads: measured value %d" % raw_adc)
     return raw_adc
 
 def main():
