@@ -37,7 +37,7 @@ SW_STATES = {}
 SW_STATES['on']  = GPIO.LOW
 SW_STATES['off'] = GPIO.HIGH
 
-#output GPIOs for comtrolling relays module
+#output GPIOs for controlling relays module
 #ground - pin 20, +5V - pin 4
 GPIO_SW_CNTL = {}
 GPIO_SW_CNTL['RemCtrl'] = 25 #relays IN1 - pin 22

@@ -4,6 +4,33 @@
 
 [TODO]
 
+object//sensor_or_relay
+
+'system' - system messages start up
+
+'alarm': 
+'ExtPwr'
+'DrainOn'
+'Flood'
+
+'set':
+'RemCtrl'
+'Pump1'
+'Pump2'
+
+'pressure' - pressure data
+
+'status':
+'Pump1'
+'Pump2'
+'Pump3'
+'DoorOpen'
+'Rake'
+'Level1'
+'Level2'
+'Level3'
+
+
 ## Rasberry Pi node side
 
 * Install latest Raspbian on RPi
@@ -18,7 +45,7 @@ sudo apt update && sudo apt dist-upgrade
 
 ```bash
 apt install -y git python3 python3-pip 
-apt-get install -y python3-smbus i2c-tools
+apt-get install -y python3-smbus python3-rpi.gpio i2c-tools
 apt install openvpn wvdial policykit-1 tmux
 #for debugging install mosquitto-clients
 apt install mosquitto-clients
@@ -26,8 +53,9 @@ apt install mosquitto-clients
 
 Install [paho-mqtt](https://github.com/eclipse/paho.mqtt.python)
 ```bash
-pip3 install paho-mqtt RPi.GPIO
+pip3 install paho-mqtt
 ```
+
 ### Setup monitoring
 
 Clone repository
@@ -38,7 +66,7 @@ git clone https://github.com/z80x1/watertower.git
 chmod +x /opt/watertower/RPi/wtower.py
 ```
 
-Example config file
+Examples config file
 ```bash
 $ cat /etc/wtower.conf
 [default]
@@ -48,6 +76,15 @@ BrokerIp = 10.10.10.213
 BrokerPort = 1883
 ```
 
+```bash
+$ cat /etc/wtower.conf
+[default]
+Nodetype = kns
+Nodename = kns01
+BrokerIp = 10.10.10.213
+BrokerPort = 8883
+```
+
 #### Systemd services
 
 Unit file
@@ -55,14 +92,16 @@ Unit file
 # cat /etc/systemd/system/wtower.service
 [Unit]
 Description = monitoring pumps and sensors
-#After = networking.target
-After = wvdial.target
+#After=wvdial.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-ExecStart = /opt/watertower/RPi/wtower.py
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=wtower
+Type=idle
+ExecStart=/opt/watertower/RPi/wtower.py
+#StandardOutput=syslog
+#StandardError=syslog
+#SyslogIdentifier=wtower
 Restart=always
 RestartSec=10
 
@@ -119,10 +158,11 @@ wvdial service
 # cat /etc/systemd/system/wvdial.service
 [Unit]
 Description = WvDial service
-After = networking.target
+#After = network.target
 
 [Service]
-ExecStart = /opt/modem.sh
+Type=idle
+ExecStart=/opt/modem.sh
 Restart=always
 RestartSec=10
 
