@@ -151,7 +151,8 @@ def read_from_pressure_sensor():
 def read_inputs_status(input_list):
     status = {}
     for n in input_list:
-      status[n] = 'on' if GPIO.input(GPIO_IN[n])==GPIO.LOW else 'off'
+      level_on = GPIO.HIGH if n=="ExtPwr" else GPIO.LOW #FIXME better to save GPIO level corresponding to ON status in GPIO_IN itself
+      status[n] = 'on' if GPIO.input(GPIO_IN[n])==level_on else 'off'
 
     return status
 
