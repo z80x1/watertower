@@ -133,17 +133,8 @@ def gpio_setup():
         GPIO.setup(GPIO_IN[n], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def gpio_cleanup():
-    for k, v in GPIO_SW_CNTL.items():
-        print("%s: cleaning up GPIO%d" % (k, v))
-        GPIO.cleanup(v)
-
-    for n in glist_statuses:
-        print("%s: cleaning up GPIO%d" % (n, GPIO_IN[n]))
-        GPIO.cleanup(GPIO_IN[n])
-
-    for n in glist_alarms:
-        print("%s: cleaning up GPIO%d" % (n, GPIO_IN[n]))
-        GPIO.cleanup(GPIO_IN[n])
+    print("cleaning up GPIOs")
+    GPIO.cleanup()
 
 def read_from_pressure_sensor():
     #TODO move to using https://github.com/adafruit/Adafruit_Python_ADS1x15
