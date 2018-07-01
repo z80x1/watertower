@@ -4,6 +4,7 @@
 # This code is designed to work with the ADS1115 I2C module with RaspberryPi
 import smbus
 import time
+import subprocess
 
 # Register and other configuration values:
 ADS1x15_DEFAULT_ADDRESS        = 0x48
