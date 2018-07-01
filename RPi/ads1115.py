@@ -94,7 +94,12 @@ def ads_setup():
     # b1:0=11   COMP_QUE  Disable comparator and set ALERT/RDY pin to high-impedance (default)
 #    data = [0x84,0x83]
     data = [0xc6,0x83] #AINP = AIN0 and AIN N = GND; +/-1.024V
-    bus.write_i2c_block_data(ADDR, ADS1x15_POINTER_CONFIG, data)
+    try:
+        bus.write_i2c_block_data(ADDR, ADS1x15_POINTER_CONFIG, data)
+    except IOError:
+        print("ads: IO error catched, running i2cdetect")
+        subprocess.call(['i2cdetect', '-y', '1'])
+        ads_setup_required = True
 
     time.sleep(0.5)
 
@@ -105,9 +110,9 @@ def ads_read():
         ads_setup()
         ads_setup_required = False
 
-    # Read data back from 0x00, 2 bytes
-    # raw_adc MSB, raw_adc LSB
     try:
+        # Read data back from 0x00, 2 bytes
+        # raw_adc MSB, raw_adc LSB
         data = bus.read_i2c_block_data(ADDR, ADS1x15_POINTER_CONVERSION, 2)
     except IOError:
         print("ads: IO error catched, running i2cdetect")
