@@ -80,7 +80,7 @@ def load_config():
     section = parser['default']
     gconf['type'] = section.get('Nodetype', 'tower') # tower/kns
     gconf['name'] = section.get('Nodename', 'xxx') # wtXX/knsXX
-    gconf['broker_ip'] = section.get('BrokerIp', 'localhost')
+    gconf['broker_host'] = section.get('BrokerHost', 'localhost')
     gconf['broker_port'] = section.getint('BrokerPort', 1883) # 8883 for TLS enabled
     #TODO: verify loaded values
     print("Loaded config: %s" % str(gconf)) 
@@ -221,10 +221,10 @@ def mqtt_setup():
     mqtt.will_set(gtopics['online'], "false", qos=1, retain=True)
 
 #  pdb.set_trace()
-    print("Connecting to broker at address %s:%d" % (gconf['broker_ip'], gconf['broker_port']))
+    print("Connecting to broker at address %s:%d" % (gconf['broker_host'], gconf['broker_port']))
     while True:
         try:
-            mqtt.connect(gconf['broker_ip'], gconf['broker_port'], keepalive=60)
+            mqtt.connect(gconf['broker_host'], gconf['broker_port'], keepalive=60)
             break
         except Exception as e:
             print("Broker connnection error: %s" % e)
