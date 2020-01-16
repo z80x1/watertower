@@ -82,6 +82,14 @@ def load_config():
     gconf['name'] = section.get('Nodename', 'xxx') # wtXX/knsXX
     gconf['broker_host'] = section.get('BrokerHost', 'localhost')
     gconf['broker_port'] = section.getint('BrokerPort', 1883) # 8883 for TLS enabled
+
+    #default values are calibration coefficients for ADZ-SML-10.0 4-20mA pressure sensor
+    # with 51 Ohm resistor used as load got from 2 points:
+    # p=0.0Atm -> U=196mV
+    # p=2.0Atm -> U=361mV
+    gconf['ads1115_mnk_a'] = section.getfloat('ADS1115_a', 82.5)
+    gconf['ads1115_mnk_b'] = section.getfloat('ADS1115_b', 196)
+
     #TODO: verify loaded values
     print("Loaded config: %s" % str(gconf)) 
 
@@ -145,7 +153,7 @@ def read_from_pressure_sensor():
     a = 82.5 #got from calibration
     b = 196  # p=0.0Atm -> U=196mV
              # p=2.0Atm -> U=361mV 
-    pressure = (U-b)/a
+    pressure = (U-gconf['ads1115_mnk_b'])/gconf['ads1115_mnk_a']
     return "{:.2f}".format(pressure)+" Atm"
 
 def read_inputs_status(input_list):
