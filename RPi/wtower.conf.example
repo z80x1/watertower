@@ -1,0 +1,8 @@
+[default]
+Nodetype = tower
+Nodename = wt1
+BrokerHost = wtower.host
+BrokerPort = 3453
+#BrokerPort = 1453
+ADS1115_b = 196.1
+ADS1115_a = 82.6
