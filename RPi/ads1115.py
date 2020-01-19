@@ -101,7 +101,6 @@ def ads_setup():
     except IOError:
         print("ads: IO error catched, running i2cdetect")
         subprocess.call(['i2cdetect', '-y', '1'])
-        ads_setup_required = True
 
     time.sleep(0.5)
 
