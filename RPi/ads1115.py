@@ -80,9 +80,9 @@ def ads_setup():
     #  111 :AIN P = AIN3 and AIN N = GND
     # b11:9 PGA[2:0]
     #  000 :FSR = +-6.144V
-    #  001 :FSR = +-4.096V
+    #*  001 :FSR = +-4.096V
     #  010 :FSR = +-2.048V (default)
-    #*  011 :FSR = +-1.024V
+    #  011 :FSR = +-1.024V
     #  100 :FSR = +-0.512V
     #  101 :FSR = +-0.256V
     #  110 :FSR = +-0.256V
@@ -94,13 +94,13 @@ def ads_setup():
     # b2=0      COMP_LAT  0 : Nonlatching comparator
     # b1:0=11   COMP_QUE  Disable comparator and set ALERT/RDY pin to high-impedance (default)
 #    data = [0x84,0x83]
-    data = [0xc6,0x83] #AINP = AIN0 and AIN N = GND; +/-1.024V
+    data = [0xc2,0x83] #AINP = AIN0 and AIN N = GND; +/-4.024V
+    # 1100 0010 1000 0011 
     try:
         bus.write_i2c_block_data(ADDR, ADS1x15_POINTER_CONFIG, data)
     except IOError:
         print("ads: IO error catched, running i2cdetect")
         subprocess.call(['i2cdetect', '-y', '1'])
-        ads_setup_required = True
 
     time.sleep(0.5)
 
