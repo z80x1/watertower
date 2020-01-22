@@ -147,12 +147,7 @@ def gpio_cleanup():
 def read_from_pressure_sensor():
     #TODO move to using https://github.com/adafruit/Adafruit_Python_ADS1x15
     #TODO add 4-20mA range overflow detection
-    U = 1024*ads1115.ads_read()/32768 #mV
-    #calibration coefficients for ADZ-SML-10.0 4-20mA pressure sensor
-    # 51 Ohm resistor is used as load
-    a = 82.5 #got from calibration
-    b = 196  # p=0.0Atm -> U=196mV
-             # p=2.0Atm -> U=361mV 
+    U = 4*1024*ads1115.ads_read()/32768 #mV
     pressure = (U-gconf['ads1115_mnk_b'])/gconf['ads1115_mnk_a']
     return "{:.2f}".format(pressure)+" Atm"
 
