@@ -115,17 +115,24 @@ def ads_read():
         # Read data back from 0x00, 2 bytes
         # raw_adc MSB, raw_adc LSB
         data = bus.read_i2c_block_data(ADDR, ADS1x15_POINTER_CONVERSION, 2)
+
     except IOError:
         print("ads: IO error catched, running i2cdetect")
         subprocess.call(['i2cdetect', '-y', '1'])
         ads_setup_required = True
-        return 0;
+        return -1;
 
     # Convert the data
     raw_adc = data[0]*256 + data[1]
 
     if raw_adc > 32767:
         raw_adc -= 65535
+
+    if raw_adc == 0: #this shouldn't happen with 4-20mA interface, need to reconfigure ADC, 
+        #TODO better to check that current configuration register value is different from previously set one 
+        print("ads: problem with configuration, reconfiguring.")
+        ads_setup_required = True
+        return 0;
 
     print("ads: measured value %d" % raw_adc)
     return raw_adc

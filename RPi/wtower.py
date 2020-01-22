@@ -148,6 +148,9 @@ def read_from_pressure_sensor():
     #TODO move to using https://github.com/adafruit/Adafruit_Python_ADS1x15
     #TODO add 4-20mA range overflow detection
     U = 4*1024*ads1115.ads_read()/32768 #mV
+    if U <= 0: #shouldn't happen with correct setup
+        return float('NaN')
+
     pressure = (U-gconf['ads1115_mnk_b'])/gconf['ads1115_mnk_a']
     return "{:.2f}".format(pressure)+" Atm"
 
@@ -262,7 +265,7 @@ def main():
 
         if gconf['type'] == 'tower':
             pressure = read_from_pressure_sensor()
-            if pressure != old_pressure:
+            if (pressure != float("nan")) and (pressure != old_pressure):
                 print("pressure: %s" % pressure)
                 (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0, retain=True)
                 old_pressure = pressure
