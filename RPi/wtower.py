@@ -152,7 +152,7 @@ def read_from_pressure_sensor():
         return float('NaN')
 
     pressure = (U-gconf['ads1115_mnk_b'])/gconf['ads1115_mnk_a']
-    return "{:.2f}".format(pressure)+" Atm"
+    return pressure
 
 def read_inputs_status(input_list):
     status = {}
@@ -265,10 +265,13 @@ def main():
 
         if gconf['type'] == 'tower':
             pressure = read_from_pressure_sensor()
-            if (pressure != float("nan")) and (pressure != old_pressure):
-                print("pressure: %s" % pressure)
-                (rc, mid) = mqtt.publish(gtopics['pressure'], str(pressure), qos=0, retain=True)
+            #checking read value is valid and more then 1% different from old value
+            if (pressure != float("nan")) and \
+               ((0.99*pressure > old_pressure) or (1.01*pressure < old_pressure)):
                 old_pressure = pressure
+                press_str = "{:.2f}".format(pressure)+" Atm"
+                print("pressure: %s" % press_str)
+                (rc, mid) = mqtt.publish(gtopics['pressure'], press_str, qos=0, retain=True)
 
         #add comparing current status with previous and send msg only if different
         alarms = read_inputs_status(glist_alarms)
