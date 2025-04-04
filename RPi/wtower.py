@@ -65,6 +65,7 @@ def signal_handler(signum, frame):
     print("Signal handler called with signal %d. Cleaning up and exiting" % signum)
     mqtt.publish(gtopics['online'], "false", qos=1, retain=True)
     mqtt.disconnect()
+    mqtt.loop_stop()  # waits, until DISCONNECT/WILL message is sent out
     gpio_cleanup()
     sys.exit(0)
 
@@ -164,6 +165,7 @@ def read_inputs_status(input_list):
 
 def on_connect(mqtt, userdata, flags, rc):
     print("CONNACK received with rc=%d" % (rc))
+    (rc, mid) = mqtt.publish(gtopics['online'], "true", qos=1, retain=True)
 
     sub_topic = gtopics['set']+'/#'
     print("Adding subscription to '%s'" % sub_topic)
@@ -254,7 +256,6 @@ def main():
         ads1115.ads_setup()
 
     mqtt = mqtt_setup()
-    (rc, mid) = mqtt.publish(gtopics['online'], "true", qos=1, retain=True)
 
     old_pressure = 0
     old_alarms = {}
