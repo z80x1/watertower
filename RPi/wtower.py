@@ -108,6 +108,9 @@ def classify_gpio():
         glist_statuses = ["Pump1", "Pump2"]
         glist_alarms = ["ExtPwr"]
 
+        if gconf['name'] == 'wt0':
+            glist_statuses.extend(["Level1", "Level2", "Level3", "DoorOpen"])
+
     elif gconf['type'] == 'kns':
         glist_statuses = ["Pump1", "Pump2", "Pump3", "Level1", "Level2", "Level3", "DoorOpen", "Rake"]
         glist_alarms = ["ExtPwr", "DrainOn", "Flood"]
@@ -115,7 +118,7 @@ def classify_gpio():
     else:
         print("Unsupported system type: %s" % gconf['type'])
         return False
-        
+
     return True
 
 def gpio_setup():
